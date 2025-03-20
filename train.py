@@ -4,7 +4,6 @@ import tensorflow as tf
 from mediapipe_model_maker import gesture_recognizer
 
 import matplotlib.pyplot as plt
-import tensorflow as tf
 
 # List available GPUs
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -22,7 +21,7 @@ for dir_name in os.listdir('HandTyper_MAIN/data'):
 
 print(labels)
 
-NUM_EXAMPLES = 50# Use GPU 0
+NUM_EXAMPLES = 50
 dataset_path = 'HandTyper_MAIN/data/'
 
 for label in labels:
