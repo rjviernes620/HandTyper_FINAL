@@ -10,7 +10,9 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 import cv2
+import tkinter as tk
 import os
+
 model_path = "models/gesture_recognizer.task"
 
 BaseOptions = mp.tasks.BaseOptions
@@ -20,6 +22,11 @@ GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 result_gesture = None
+
+
+main = tk.Tk()
+main.title("HandTyper")
+main.geometry("500x500")
 
 # Create a gesture recognizer instance with the live stream mode:
 def print_result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
@@ -79,5 +86,10 @@ def main_capture():
         cap.release()
         cv2.destroyAllWindows()
         
+def frontend():
+    
+    pass
+
+        
 while __name__ == '__main__':
-    live_capture()
+    main_capture()
