@@ -13,6 +13,8 @@ import cv2
 import tkinter as tk
 import os
 
+import autopy
+
 model_path = "models/gesture_recognizer.task"
 
 BaseOptions = mp.tasks.BaseOptions
@@ -64,7 +66,11 @@ def main_capture():
             
             while True:
                 ret, frame = cap.read()
-                frame = cv2.flip(frame, 1) # flip the frame horizontally
+                frame = cv2.flip(frame, 1)  # Flip the frame horizontally
+
+                # Zoom out by resizing the frame to a smaller resolution
+                zoom_out_scale = 0.5  # Adjust this value to control the zoom-out level (e.g., 0.5 = 50% size)
+                frame = cv2.resize(frame, None, fx=zoom_out_scale, fy=zoom_out_scale, interpolation=cv2.INTER_LINEAR)
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame) #Create an image object for Mediapipe
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame_timestamp_ms = int(cap.get(cv2.CAP_PROP_POS_MSEC)) # get the timestamp of the frame
@@ -79,16 +85,24 @@ def main_capture():
                 cv2.putText(frame, result_gesture, (10, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)
 
             # Display the frame
-                cv2.imshow('HandTyperv1', frame)            
+                cv2.imshow('HandTyperv1', frame)   
+                cv2.resizeWindow('HandTyperv1', 320, 240) # resize the window to 640x480
+                cv2.moveWindow('HandTyperv1', (windowsize()[0] - 320), (windowsize()[1] - 240))
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
                 
         cap.release()
         cv2.destroyAllWindows()
         
-def frontend():
+def windowsize():
+    main = tk.Tk()
+    return main.winfo_screenwidth(), main.winfo_screenheight()    
+
+def translate(sign):
+    target = sign.lower().strip()
     
-    pass
+    autopy.key.tap(target) # use autopy to type the recognised gesture
+    print(f"Typed: {target}")
 
         
 while __name__ == '__main__':
