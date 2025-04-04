@@ -13,7 +13,7 @@ import cv2
 import tkinter as tk
 import os
 
-import autopy
+import pynput
 
 model_path = "models/gesture_recognizer.task"
 
@@ -42,6 +42,9 @@ def print_result(result: GestureRecognizerResult, output_image: mp.Image, timest
             target = result.gestures[-1][0]
             print(f"Recognized gesture: {target.category_name}")
             result_gesture = str(target.category_name)
+            translate(result_gesture) # translate the gesture to a keypress
+        else:
+            result_gesture = "No gesture detected"
             
 
 options = GestureRecognizerOptions(#Parameters for the gesture recognizer
@@ -99,9 +102,9 @@ def windowsize():
     return main.winfo_screenwidth(), main.winfo_screenheight()    
 
 def translate(sign):
-    target = sign.lower().strip()
-    
-    autopy.key.tap(target) # use autopy to type the recognised gesture
+    keyboard = pynput.keyboard.Controller()
+    target = ''.join([i for i in sign if i.isalpha() and i.isupper()])
+    keyboard.press(target) # press the key corresponding to the gesture
     print(f"Typed: {target}")
 
         
