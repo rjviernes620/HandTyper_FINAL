@@ -47,7 +47,6 @@ def print_result(result: GestureRecognizerResult, output_image: mp.Image, timest
         
         while mouse_mode == True:
             
-            
             pass
             
 
@@ -73,10 +72,9 @@ def draw_menu(frame):
 
 def main_capture():
     """
-    Function to cover the capturing of the frames from cv2
+    Function to cover the capturing of the frames from the cv2 window
     """
-
-
+    
     with GestureRecognizer.create_from_options(options) as recognizer:
         
         with mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.75) as hands:
@@ -121,14 +119,31 @@ def main_capture():
         cv2.destroyAllWindows()
         
         
-def mouse_movement(x, y):
-    pynput.mouse.Controller().position = (x, y) # move the mouse to the x and y coordinates
-        
+def mouse_movement(results):
+    """
+    Function to move the mouse cursor based on the index finger position.
+    Only active when mouse_mode is True.
+    """
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            finger = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+            
+            pynput.mouse.Controller().position = (int(finger.x * windowsize()[0]), int(finger.y * windowsize()[1])) # move the mouse to the position of the index finger tip     
+            
+    return None
+
 def windowsize():
+    """
+    Function to get the size of the screen
+    """
+    
     main = tk.Tk()
     return main.winfo_screenwidth(), main.winfo_screenheight()    
 
 def translate(sign):
+    """
+    Main Function, translating the identified gesture into a keystroke
+    """
     keyboard = pynput.keyboard.Controller()
     target = sign.split()
     keyboard.press(target[-1]) # press the key corresponding to the gesture
