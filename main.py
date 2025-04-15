@@ -11,6 +11,7 @@ import tkinter as tk
 import os
 from tkinter import messagebox
 
+import threading
 import pynput
 
 model_path = "models/gesture_recognizer.task"
@@ -24,7 +25,7 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 result_gesture = None
 
 key_mode = False
-mouse_mode = False
+mouse_mode = True
 
 # Create a gesture recognizer instance with the live stream mode:
 def print_result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
@@ -45,11 +46,10 @@ def print_result(result: GestureRecognizerResult, output_image: mp.Image, timest
             else:
                 result_gesture = "No gesture detected"
         
-        while mouse_mode == True:
+        # while mouse_mode == True:
             
-            pass
+        #     mouse_movement(result)
             
-
 options = GestureRecognizerOptions(#Parameters for the gesture recognizer
     base_options=BaseOptions(model_asset_path=model_path),
     running_mode=VisionRunningMode.LIVE_STREAM,
@@ -70,67 +70,66 @@ def draw_menu(frame):
     # Add menu options as text
     cv2.putText(frame, "Menu: [Q] Quit | [H] Help", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
 
-def main_capture():
-    """
-    Function to cover the capturing of the frames from the cv2 window
-    """
+
+stop_thread = False
+
+def video_capture(recognizer, hands):
     
+    global stop_thread
+    
+    cap = cv2.VideoCapture(0)
+    frame_count = 0  # Initialize frame count
+    
+    while not stop_thread:
+        
+        ret, frame = cap.read()
+        cv2.imshow('HandTyperv1', frame)
+
+        if not ret:
+            break
+        
+        frame_count += 1
+        
+        if frame_count % 2 == 0:  # Process every other frame
+            continue
+        
+        frame = cv2.flip(frame, 1)  # Flip the frame horizontally
+
+        # Zoom out by resizing the frame to a smaller resolution
+        frame = cv2.resize(frame, (int(windowsize()[0] // 4), int(windowsize()[-1] // 4)), interpolation=cv2.INTER_NEAREST)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)  # Create an image object for Mediapipe
+        frame_timestamp_ms = int(cap.get(cv2.CAP_PROP_POS_MSEC))  # Get the timestamp of the frame
+        #recognizer.recognize_async(mp_image, frame_timestamp_ms)  # Recognize the image asynchronously
+        
+        # Draw the menu overlay
+        draw_menu(frame)
+        cv2.putText(frame, result_gesture, (10, 70), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 2)
+
+        # Display the frame
+        cv2.resizeWindow('HandTyperv1', windowsize()[0] // 4, windowsize()[1] // 4)
+
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):  # Quit the application
+            stop_thread = True
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+        
+def main_capture():
+    
+    global stop_thread
     with GestureRecognizer.create_from_options(options) as recognizer:
-        
-        with mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.75) as hands:
-            cap = cv2.VideoCapture(0)
+        with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) as hands:
+            video_feed = threading.Thread(target=video_capture, args=(recognizer, hands))
+            video_feed.start()
             
-            while True:
-                ret, frame = cap.read()
-                frame = cv2.flip(frame, 1)  # Flip the frame horizontally
-
-                # Zoom out by resizing the frame to a smaller resolution
-                zoom_out_scale = 0.5  # Adjust this value to control the zoom-out level (e.g., 0.5 = 50% size)
-                frame = cv2.resize(frame, None, fx=zoom_out_scale, fy=zoom_out_scale, interpolation=cv2.INTER_LINEAR)
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame) #Create an image object for Mediapipe
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_timestamp_ms = int(cap.get(cv2.CAP_PROP_POS_MSEC)) # get the timestamp of the frame
-                recognizer.recognize_async(mp_image, frame_timestamp_ms) # recognize the image asynchronously
-                results = hands.process(rgb_frame)
-
-                # Draw hand landmarks
-                if results.multi_hand_landmarks: # if there are hands in the frame
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS) # present the hand landmarks onto the frame
-
-                # Draw the menu overlay
-                draw_menu(frame)
-                        
-                cv2.putText(frame, result_gesture, (10, 70), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 2)
-
-                # Display the frame
-                cv2.imshow('HandTyperv1', frame)   
-                cv2.resizeWindow('HandTyperv1', 320, 240)
-                cv2.moveWindow('HandTyperv1', (windowsize()[0] - 330), (windowsize()[1] - 250))
-                
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):  # Quit the application
-                    break
-                
-                elif key == ord('m'):  # Show help message
-                    print("Placeholder Text")
-                
-        cap.release()
-        cv2.destroyAllWindows()
+            video_feed.join()  # Wait for the thread to finish before exiting
         
         
-def mouse_movement(results):
-    """
-    Function to move the mouse cursor based on the index finger position.
-    Only active when mouse_mode is True.
-    """
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            finger = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-            
-            pynput.mouse.Controller().position = (int(finger.x * windowsize()[0]), int(finger.y * windowsize()[1])) # move the mouse to the position of the index finger tip     
-            
-    return None
+def mouse_movement(x, y):
+    
+    pynput.mouse.Controller().position = (x, y)  # Move the mouse to the specified coordinates
 
 def windowsize():
     """
