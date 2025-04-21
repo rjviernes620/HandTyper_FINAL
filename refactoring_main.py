@@ -61,7 +61,7 @@ class HandTyper:
         if result.gestures:
             
             if self.key_mode:
-                print(f"Recognized gestures: {result.gestures}")
+                print(f"Recognized gestures: {result.gestures}") #Only prints out the recognized gesture when key_mode is true
                 
             target = str(result.gestures[0][0].category_name)
 
@@ -78,16 +78,23 @@ class HandTyper:
         Params: frame - The frame to draw the menu on.
         """
         cv2.rectangle(frame, (0, 0), (320, 50), (200, 200, 200), -1)
-        cv2.putText(frame, "Menu: [Q] Quit | [H] Help", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+        cv2.putText(frame, "Menu: [Q] Quit | [M] Switch Modes (Mouse | Keyboard) ", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
 
     def main_capture(self):
-        cv2.namedWindow('HandTyperv1', cv2.WINDOW_NORMAL)
+        
+        """
+        Def: Main function to capture the video stream and process the hand gestures.
+        """
+        
+        cv2.namedWindow('HandTyperv1', cv2.WINDOW_NORMAL) #Names the Window accordingly for the 
         cv2.resizeWindow('HandTyperv1', self.windowsize()[0], self.windowsize()[1])
         cv2.setWindowProperty('HandTyperv1', cv2.WND_PROP_TOPMOST, 1)
+        cv2.moveWindow('HandTyperv1', (self.windowsize()[0] * 4 - self.windowsize()[0]), (self.windowsize()[1] * 4 - self.windowsize()[1])) # Moves the window to the top left corner of the screen
+        
 
-        with self.GestureRecognizer.create_from_options(self.options) as recognizer:
-            with self.mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.75) as hands:
-                cap = cv2.VideoCapture(0)
+        with self.GestureRecognizer.create_from_options(self.options) as recognizer: # Intialize the recognizer with the predefoined options
+            with self.mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.6) as hands: # Initialize the MediaPipe Hands module
+                cap = cv2.VideoCapture(0) # Open the webcam
 
                 while True:
                     ret, frame = cap.read()
@@ -205,15 +212,15 @@ class HandTyper:
                 mouse.click(pynput.mouse.Button.right, 1) 
         
         else: 
-            if target == "BACKSPACE":
+            if target == 'BACKSPACE':
                 keyboard.press(pynput.keyboard.Key.backspace)
                 keyboard.release(pynput.keyboard.Key.backspace)
                 
-            elif target == "SPACE":
+            elif target == 'ENTER':
                 keyboard.press(pynput.keyboard.Key.space)
                 keyboard.release(pynput.keyboard.Key.space)
                 
-            elif target == "ENTER":
+            elif target == 'SPACE':
                 keyboard.press(pynput.keyboard.Key.enter)
                 keyboard.release(pynput.keyboard.Key.enter)
 

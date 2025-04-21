@@ -1,4 +1,4 @@
-##HandTyperMain - Main Class for the HandTyper Programme
+##HandTyperMain - Main code (Unrefactored) for the HandTyper Programme
 ##Author: Roel-Junior Alejo Viernes (001221190)
 ##Email: rv6049z@gre.ac.uk
 
