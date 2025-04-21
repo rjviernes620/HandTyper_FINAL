@@ -10,7 +10,7 @@ import cv2
 import tkinter as tk
 import pynput
 import time
-
+import cProfile
 class HandTyper:
     
     def __init__(self):
@@ -67,6 +67,7 @@ class HandTyper:
 
             if target and target != 'none':
                 self.result_gesture = target
+                
                 self.translate(self.result_gesture)
             else:
                 self.result_gesture = "No gesture detected"
@@ -89,17 +90,28 @@ class HandTyper:
         cv2.namedWindow('HandTyperv1', cv2.WINDOW_NORMAL) #Names the Window accordingly for the 
         cv2.resizeWindow('HandTyperv1', self.windowsize()[0], self.windowsize()[1])
         cv2.setWindowProperty('HandTyperv1', cv2.WND_PROP_TOPMOST, 1)
-        cv2.moveWindow('HandTyperv1', (self.windowsize()[0] * 4 - self.windowsize()[0]), (self.windowsize()[1] * 4 - self.windowsize()[1])) # Moves the window to the top left corner of the screen
+        #cv2.moveWindow('HandTyperv1', (self.windowsize()[0] * 4 - self.windowsize()[0]), (self.windowsize()[1] * 4 - self.windowsize()[1])) # Moves the window to the top left corner of the screen
         
+        frame_count = 0 # Frame counter for the webcam
 
         with self.GestureRecognizer.create_from_options(self.options) as recognizer: # Intialize the recognizer with the predefoined options
-            with self.mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.6) as hands: # Initialize the MediaPipe Hands module
+            with self.mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.6, min_tracking_confidence = 0.4) as hands: # Initialize the MediaPipe Hands module
                 cap = cv2.VideoCapture(0) # Open the webcam
+                cap.set(cv2.CAP_PROP_FPS, 30)
 
                 while True:
-                    ret, frame = cap.read()
+                    
+
+                    
+                    _, frame = cap.read()
+                    
+                    frame_count += 1
+                    
+                    if frame_count % 2 != 0:
+                        continue
+                    
                     frame = cv2.flip(frame, 1)
-                    frame = cv2.resize(frame, (self.windowsize()[0], self.windowsize()[1]))
+                    #frame = cv2.resize(frame, (self.windowsize()[0], self.windowsize()[1]))
                     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
                     frame_timestamp_ms = int(time.time() * 1000)
@@ -143,10 +155,11 @@ class HandTyper:
                                     mouse.click(pynput.mouse.Button.left, 1) # click the right mouse button  
 
                     self.draw_menu(frame)
-                    cv2.putText(frame, self.result_gesture, (10, 70), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)
+                    cv2.putText(frame, self.result_gesture, (10, 70), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2) 
                     cv2.imshow('HandTyperv1', frame)
 
                     key = cv2.waitKey(1) & 0xFF
+                    
                     if key == ord('q'):
                         break
                     
@@ -169,10 +182,9 @@ class HandTyper:
 
 
     def mouse_movement(self, x, y):
-        
         """
         Function to move the mouse to the x and y coordinates of the index finger tip
-        
+
         Params:
         x: x coordinate of the index finger tip
         y: y coordinate of the index finger tip
@@ -180,9 +192,11 @@ class HandTyper:
         mouse = pynput.mouse.Controller()
         current_x, current_y = mouse.position  # Get the current mouse position
 
+        # Scale the coordinates to the full screen resolution
+        screen_width, screen_height = self.windowsize()[0] * 4, self.windowsize()[1] * 4
+        scaled_x = int(x * screen_width / self.windowsize()[0])
+        scaled_y = int(y * screen_height / self.windowsize()[1])
 
-        scaled_x = int(x * int(self.windowsize()[0] * 4) / int(self.windowsize()[1] * 4))
-        scaled_y = int(y * int(self.windowsize()[1] * 4) / int(self.windowsize()[0] * 4))# Scale the x coordinate to the screen resolution
         # Number of steps for smooth movement
         steps = 10
         for i in range(1, steps + 1):
@@ -191,7 +205,8 @@ class HandTyper:
             smooth_y = current_y + (scaled_y - current_y) * i / steps
             mouse.position = (int(smooth_x), int(smooth_y))
             time.sleep(0.01)  # Add a small delay for smoother movement
-
+        
+        
     def translate(self, sign):
         
         """
@@ -238,4 +253,4 @@ class HandTyper:
 
 if __name__ == '__main__':
     hand_typer = HandTyper()
-    hand_typer.main_capture()
+    cProfile.run(hand_typer.main_capture())
